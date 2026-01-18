@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: Order & Returns Management System
+  version: 1.0.0
+  description: Backend APIs for order lifecycle and return workflow
+servers:
+  - url: /api
+paths:
+  /orders:
+    post:
+      summary: Create a new order
+      operationId: createOrder
+      tags: [Order]
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCreateResponse'
+  /orders/{orderId}/transition:
+    post:
+      summary: Transition order state
+      operationId: transitionOrderState
+      tags: [Order]
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStateTransitionRequest'
+      responses:
+        '200':
+          description: Order state transitioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCreateResponse'
+        '400':
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict (terminal state)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /orders/{orderId}:
+    get:
+      summary: Get order by ID
+      operationId: getOrderById
+      tags: [Order]
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCreateResponse'
+        '400':
+          description: Order not found or cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /returns:
+    post:
+      summary: Create a return request
+      operationId: createReturn
+      tags: [Return]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReturnRequest'
+      responses:
+        '201':
+          description: Return created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnCreateResponse'
+        '409':
+          description: Conflict (order not delivered or duplicate return)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /returns/{returnId}/transition:
+    post:
+      summary: Transition return state
+      operationId: transitionReturnState
+      tags: [Return]
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReturnStateTransitionRequest'
+      responses:
+        '200':
+          description: Return state transitioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnCreateResponse'
+        '400':
+          description: Invalid action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict (terminal state)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /returns/{returnId}:
+    get:
+      summary: Get return by ID
+      operationId: getReturnById
+      tags: [Return]
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Return found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnCreateResponse'
+        '400':
+          description: Return not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    OrderCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/OrderState'
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    OrderStateTransitionRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          $ref: '#/components/schemas/OrderAction'
+    CreateReturnRequest:
+      type: object
+      required: [orderId]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+    ReturnCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/ReturnState'
+        refundStatus:
+          $ref: '#/components/schemas/RefundStatus'
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ReturnStateTransitionRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          $ref: '#/components/schemas/ReturnAction'
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+    OrderAction:
+      type: string
+      enum: [PAY, CANCEL, PROCESS, SHIP, DELIVER]
+    OrderState:
+      type: string
+      enum: [PENDING_PAYMENT, PAID, PROCESSING_IN_WAREHOUSE, SHIPPED, DELIVERED, CANCELLED]
+    ReturnAction:
+      type: string
+      enum: [APPROVE, REJECT, MARK_IN_TRANSIT, RECEIVE, COMPLETE]
+    ReturnState:
+      type: string
+      enum: [REQUESTED, APPROVED, REJECTED, IN_TRANSIT, RECEIVED, COMPLETED]
+    RefundStatus:
+      type: string
+      enum: [PENDING, SUCCESS, FAILED]
+
