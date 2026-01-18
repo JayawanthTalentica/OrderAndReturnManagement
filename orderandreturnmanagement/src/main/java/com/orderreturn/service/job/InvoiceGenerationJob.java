@@ -1,10 +1,17 @@
 package com.orderreturn.service.job;
 
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.UUID;
 
 @Component
@@ -39,7 +46,34 @@ public class InvoiceGenerationJob {
     void simulateInvoiceGeneration(UUID orderId) {
         // Simulate PDF generation (could randomly throw exception for testing retry)
         if (Math.random() < 0.2) throw new RuntimeException("Simulated PDF generation failure");
-        logger.info("Simulated PDF invoice generated for order {}", orderId);
+        // Generate dummy PDF and store in 'invoices' folder at project root
+        String folderPath = System.getProperty("user.dir") + File.separator + "invoices";
+        String fileName = String.format("invoice-%s.pdf", orderId);
+        File folder = new File(folderPath);
+        if (!folder.exists() && !folder.mkdirs()) {
+            throw new RuntimeException("Failed to create invoices directory at: " + folderPath);
+        }
+        File pdfFile = new File(folder, fileName);
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+                contentStream.beginText();
+                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 18);
+                contentStream.newLineAtOffset(100, 750);
+                contentStream.showText("Invoice for Order: " + orderId);
+                contentStream.endText();
+                contentStream.beginText();
+                contentStream.setFont(PDType1Font.HELVETICA, 12);
+                contentStream.newLineAtOffset(100, 720);
+                contentStream.showText("This is a dummy invoice generated on: " + java.time.LocalDateTime.now());
+                contentStream.endText();
+            }
+            document.save(pdfFile);
+            logger.info("Dummy PDF invoice generated and saved at {} for order {}", pdfFile.getAbsolutePath(), orderId);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to generate PDF invoice: " + e.getMessage(), e);
+        }
     }
 
     // Change to package-private for testability
