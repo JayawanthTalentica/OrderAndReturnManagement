@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: orderreturn-db
+    environment:
+      POSTGRES_DB: orderreturn
+      POSTGRES_USER: orderuser
+      POSTGRES_PASSWORD: orderpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - orderreturn-db-data:/var/lib/postgresql/data
+    networks:
+      - orderreturn-net
+    restart: unless-stopped
+
+  app:
+    build:
+      context: docs
+      dockerfile: Dockerfile
+    container_name: orderreturn-app
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: orderreturn
+      DB_USER: orderuser
+      DB_PASSWORD: orderpass
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - db
+    networks:
+      - orderreturn-net
+    restart: unless-stopped
+
+volumes:
+  orderreturn-db-data:
+
+networks:
+  orderreturn-net:
+    driver: bridge
