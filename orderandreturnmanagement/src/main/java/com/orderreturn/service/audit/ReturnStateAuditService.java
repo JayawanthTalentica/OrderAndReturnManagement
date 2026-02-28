@@ -2,7 +2,7 @@ package com.orderreturn.service.audit;
 
 import com.orderreturn.dto.PageResponse;
 import com.orderreturn.dto.ReturnStateHistoryResponse;
-import com.orderreturn.entities.ReturnEntity;
+import com.orderreturn.entities.Return;
 import com.orderreturn.entities.ReturnStateHistory;
 import com.orderreturn.enums.ActorType;
 import com.orderreturn.enums.ReturnState;
