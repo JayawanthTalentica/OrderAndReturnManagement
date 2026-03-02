@@ -49,8 +49,14 @@ OrderAndReturnManagement/
 - **config/**: (If present) Application configuration beans.
 
 ## Layering & Responsibilities
-- **Controller → Service → Repository**: Clean separation of concerns.
-- **State machines** are isolated in `service.state` for testability and clarity.
-- **Audit and background jobs** are modularized for maintainability.
+- **Controller → Service → Repository:** Clean separation of concerns.
+- **State machines:** Isolated in `service.state` for testability and clarity.
+- **Audit and background jobs:** Modularized for maintainability.
 - **No business logic in controllers or repositories.**
+- **Async jobs:** Implemented in `service.job` and tracked via JobExecution APIs.
+- **Append-only audit tables:** All state transitions are logged for traceability and compliance.
+- **Atomic transaction boundaries:** State transitions and audit logs are committed atomically.
 
+---
+
+This structure ensures maintainability, testability, and production-grade clarity for all business flows.
