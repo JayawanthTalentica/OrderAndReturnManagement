@@ -1,5 +1,10 @@
 package com.orderreturn.service.job;
 
+import com.orderreturn.entities.JobExecution;
+import com.orderreturn.enums.JobStatus;
+import com.orderreturn.enums.JobType;
+import com.orderreturn.repositories.JobExecutionRepository;
+import com.orderreturn.service.JobExecutionService;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -7,6 +12,7 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -18,26 +24,41 @@ import java.util.UUID;
 public class InvoiceGenerationJob {
     private static final Logger logger = LoggerFactory.getLogger(InvoiceGenerationJob.class);
     private static final int MAX_RETRIES = 3;
+    private final JobExecutionRepository jobExecutionRepository;
+    private final JobExecutionService jobExecutionService;
+
+    @Autowired
+    public InvoiceGenerationJob(JobExecutionRepository jobExecutionRepository, JobExecutionService jobExecutionService) {
+        this.jobExecutionRepository = jobExecutionRepository;
+        this.jobExecutionService = jobExecutionService;
+    }
 
     @Async
     public void generateInvoiceAsync(UUID orderId) {
+        // Idempotency check and job creation
+        JobExecution job = jobExecutionService.createJob(orderId, JobType.INVOICE_GENERATION);
         int attempt = 0;
         boolean success = false;
         Exception lastException = null;
+        jobExecutionService.updateJobStatus(job.getId(), JobStatus.RUNNING, null, attempt);
         while (attempt < MAX_RETRIES && !success) {
             attempt++;
+            jobExecutionService.updateJobStatus(job.getId(), JobStatus.RUNNING, null, attempt);
             try {
                 simulateInvoiceGeneration(orderId);
                 simulateEmailSending(orderId);
                 logger.info("Invoice generation and email sending succeeded for order {} on attempt {}", orderId, attempt);
                 success = true;
+                jobExecutionService.updateJobStatus(job.getId(), JobStatus.SUCCESS, null, attempt);
             } catch (Exception ex) {
                 lastException = ex;
+                jobExecutionService.updateJobStatus(job.getId(), JobStatus.RUNNING, ex.getMessage(), attempt);
                 logger.warn("Invoice generation failed for order {} on attempt {}: {}", orderId, attempt, ex.getMessage());
                 try { Thread.sleep(500); } catch (InterruptedException ignored) {}
             }
         }
         if (!success) {
+            jobExecutionService.updateJobStatus(job.getId(), JobStatus.FAILED, lastException != null ? lastException.getMessage() : "unknown", attempt);
             logger.error("Invoice generation job FAILED for order {} after {} attempts. Last error: {}", orderId, MAX_RETRIES, lastException != null ? lastException.getMessage() : "unknown");
         }
     }

@@ -1,5 +1,8 @@
 package com.orderreturn.service.job;
 
+import com.orderreturn.entities.JobExecution;
+import com.orderreturn.repositories.JobExecutionRepository;
+import com.orderreturn.service.JobExecutionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -11,10 +14,17 @@ import static org.mockito.Mockito.*;
 
 class InvoiceGenerationJobTest {
     InvoiceGenerationJob job;
+    JobExecutionRepository jobExecutionRepository;
+    JobExecutionService jobExecutionService;
 
     @BeforeEach
     void setup() {
-        job = new InvoiceGenerationJob();
+        jobExecutionRepository = mock(JobExecutionRepository.class);
+        jobExecutionService = mock(JobExecutionService.class);
+        job = new InvoiceGenerationJob(jobExecutionRepository, jobExecutionService);
+        JobExecution mockJob = new JobExecution();
+        mockJob.setId(UUID.randomUUID());
+        when(jobExecutionService.createJob(any(), any())).thenReturn(mockJob);
     }
 
     @Test
@@ -40,4 +50,3 @@ class InvoiceGenerationJobTest {
         verify(spyJob, times(3)).simulateInvoiceGeneration(any());
     }
 }
-

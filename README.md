@@ -115,6 +115,38 @@ All tests are expected to pass from a clean setup.
 
 ---
 
+## Running Tests
+
+Run all unit and integration tests:
+
+```sh
+mvn test
+```
+
+## Generating Coverage Report
+
+Run tests and generate Jacoco coverage report:
+
+```sh
+mvn verify
+```
+
+Coverage report will be available at:
+- `orderandreturnmanagement/target/site/jacoco/index.html`
+
+**Minimum expected coverage:** 70% overall
+- State machine classes: near 100% branch coverage
+
+---
+
+## Test Coverage Targets
+- All state machines: 100% branch coverage
+- Services: all business logic paths
+- Background jobs: success and failure/retry paths
+- Controllers: integration tests for all endpoints
+
+---
+
 ## Notes
 
 - Authentication and authorization are intentionally out of scope.

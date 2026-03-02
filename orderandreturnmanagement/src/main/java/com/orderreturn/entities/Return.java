@@ -43,6 +43,9 @@ public class Return {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    public RefundStatus getRefundStatus() { return refundStatus; }
+    public void setRefundStatus(RefundStatus refundStatus) { this.refundStatus = refundStatus; }
 }
 
 // ReturnState and RefundStatus enums will be implemented in TASK-007
